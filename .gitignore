@@ -1,0 +1,17 @@
+# Environments and config
+.env
+kevin.env
+kevin.env.example
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+Kevin_Log_*.txt
+persistent_reminders.json
+
+# Editor and OS files
+.vscode/
+.DS_Store
+.env.*
