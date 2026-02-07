@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Kevin Bot
+Exec=bash -c "cd /home/aster/Kevin/Scripts && ./run.sh"
+Path=/home/aster/Kevin/Scripts
+Terminal=true
+Icon=utilities-terminal
+Categories=Utility;

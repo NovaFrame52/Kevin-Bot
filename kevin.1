@@ -1,0 +1,82 @@
+.TH KEVIN 1 "2026-02-04" "Kevin Bot" "User Commands"
+.SH NAME
+kevin \- helper commands for Kevin Bot (start, stop, status, log)
+.SH SYNOPSIS
+kevin-start
+kevin-stop [--force]
+kevin-status [ -t N | --tail N ] [ -v | --verbose ]
+kevin-log [ -t N | --tail N ] [ -v | --verbose ]
+.SH DESCRIPTION
+Kevin provides helper commands to manage the Kevin Discord bot on a local host. The commands are thin wrappers installed by the project's installer.
+
+.SH COMMANDS
+.TP
+kevin-start
+Start the bot (equivalent to running the project's ./Scripts/run.sh helper).
+.TP
+kevin-stop [--force]
+Stop the bot gracefully; use --force to send SIGKILL if needed.
+.TP
+kevin-status
+Show whether the bot is running, list process IDs and uptime, and display the latest log location. Use -t/--tail to show last N lines and -v/--verbose for more output.
+.TP
+kevin-log
+Wait for the bot to start (if necessary), then tail the active log file until the bot process exits. Use -t/--tail to begin with the last N lines and -v/--verbose for status messages.
+.TP
+Discord commands (available as prefix commands with `?` and as slash `/` commands):
+.TP
+?remind <time> <message> [--persistent]  — Set a reminder. Time examples: 5m, 2h, 1d.
+.TP
+?myreminders — List your active reminders.
+.TP
+?setrandominterval <seconds> — (admin) Set a fixed random message interval (min 5s).
+.TP
+?setrandomcount <n> — (admin) Set number of random messages per interval (1–10).
+.TP
+?randomauto on|off — (admin) Enable or disable automatic randomization.
+.TP
+?randomsettings — Show current random message settings.
+.TP
+?ping — Respond with pong and latency.
+.TP
+?roll NdM — Roll dice (e.g. `?roll 2d6`).
+.TP
+?quote — Send a random short quote.
+.TP
+?dm <member> <message> — (restricted) Send a DM to a member (see project configs).
+.TP
+?purge <n> — (mod) Delete recent messages in a channel.
+.TP
+?kick <member> [reason] — (mod) Kick a member.
+.TP
+?ban <member> [days] [reason] — (mod) Ban a member and optionally remove message history.
+.TP
+?mute <member> [minutes] — (mod) Add a muted role; optional auto-unmute.
+.TP
+?unmute <member> — (mod) Remove mute role.
+.TP
+?modset <subcommand> — View and set per-guild moderation settings (prefix, mod role, log/welcome channels).
+.TP
+?synccommands — (admin) Force-sync application (slash) commands with Discord.
+
+These commands are also available as application (slash) commands (for example `/remind`, `/ping`, `/roll`, `/purge`, `/synccommands`) where supported by the server and Discord client.
+.SH EXAMPLES
+.TP
+Start the bot
+\fBkevin-start\fR
+.TP
+Stop it forcefully
+\fBkevin-stop --force\fR
+.TP
+Show status and last 20 lines
+\fBkevin-status -t 20\fR
+.TP
+Stream log until stop
+\fBkevin-log -t 200\fR
+.SH FILES
+$HOME/Desktop/Kevin_Log_*.txt
+$PROJECT_ROOT/kevin.env (local configuration file)
+.SH AUTHOR
+"Wyatt B (NovaFrame52)"
+.SH SEE ALSO
+kevin-start(1), kevin-stop(1), kevin-status(1), kevin-log(1)
