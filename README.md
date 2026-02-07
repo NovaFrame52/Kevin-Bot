@@ -1,15 +1,14 @@
-# Kevin Bot
+## Kevin Bot
 
 Kevin is a small Discord bot for reminders and periodic messages.
 
-
-Quick start
+## Quick start
 1. Create `kevin.env` from `kevin.env.example` and add your `DISCORD_TOKEN`.
 2. Run `./install_all.sh` (from the project root) to set up the environment and install helpers (pass `-f` for non-interactive).
 3. Start the bot with `./Scripts/run.sh` (or the global helper `kevin-start` if you installed symlinks).
 4. Stop the bot with `kevin-stop` or `./Scripts/stop.sh`.
 
-Running (detailed)
+## Running (detailed)
 - Make scripts executable (one-time):
   - `chmod +x install_all.sh` and `chmod +x Scripts/*.sh` to make all helpers executable.
 
@@ -38,11 +37,11 @@ Running (detailed)
   - `./kevin-log.sh -v` (verbose; shows waiting/created messages)
   - `kevin-log` (if symlink installed)
 
-Manual page and TLDR
+## Manual page and TLDR
 - To install the local man page: `./install_all.sh --install-man` (may prompt for sudo) and then run `man kevin` or `man ./kevin.1` to view locally.
 - To install the tldr page: `./install_all.sh --install-tldr` (may prompt for sudo). If you use a local tldr client, you can copy `tldr-kevin.md` into its pages directory; otherwise view the file directly: `less tldr-kevin.md`.
 
-Suggested output examples
+## Suggested output examples
 
 - `kevin-status` (bot running):
 
@@ -78,16 +77,29 @@ No log file found at /home/aster/Desktop
   - `./uninstall_all.sh` - will prompt
   - `./uninstall_all.sh -f --remove-venv --remove-desktop` - non-interactive remove
 
-Security
+## Security
 - Keep `kevin.env` private. The installer sets permissions to `600` when creating it.
 - If the token is ever exposed, rotate it from the Discord Developer Portal.
 
-Project layout
+## Project layout
 - `Kevin_Bot.py` - main bot
 - `Scripts/run.sh` - start/run helper
 - `Scripts/stop.sh` - stop helper
 - `install_all.sh` / `uninstall_all.sh` - full installer/uninstaller
 - `requirements.txt` - Python deps
 
-Support
-Open an issue or edit the README with improvements.
+## Support
+
+For issues, check the logs and verify:
+1. DISCORD_TOKEN is valid
+2. Bot has required intents enabled
+3. Network connection is stable
+
+For Suggestions, open an issue or submit a pull request.
+
+---
+
+**Made with ❤️ for wellness and productivity**
+
+Stay hydrated, stay healthy! 💚
+
