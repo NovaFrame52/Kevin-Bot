@@ -6,7 +6,8 @@ set -euo pipefail
 
 FORCE=0
 BRANCH=""
-GIT_URL=""
+# Default static repo URL (can be overridden with --url)
+GIT_URL="https://github.com/NovaFrame52/Kevin-Bot.git"
 NO_RESTART=0
 
 while [ $# -gt 0 ]; do
@@ -15,7 +16,7 @@ while [ $# -gt 0 ]; do
     -b|--branch) BRANCH="$2"; shift 2 || true ;;
     --url) GIT_URL="$2"; shift 2 || true ;;
     --no-restart) NO_RESTART=1; shift ;;
-    -h|--help) echo "Usage: $0 [-f|--force] [-b|--branch BRANCH] [--url GIT_URL] [--no-restart]"; exit 0 ;;
+    -h|--help) echo "Usage: $0 [-f|--force] [-b|--branch BRANCH] [--url GIT_URL] [--no-restart]"; echo "Default repo URL: $GIT_URL"; exit 0 ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done

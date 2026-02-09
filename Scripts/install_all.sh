@@ -1,19 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Full installer for Kevin Bot
-# Usage: ./install_all.sh [-f|--force] [--no-symlinks] [--no-desktop] [--skip-venv]
-# -f, --force: non-interactive (assume yes)
-# --no-symlinks: don't install global symlinks (/usr/local/bin)
-# --no-desktop: don't copy .desktop launcher to Desktop
-# --skip-venv: skip virtualenv creation and pip install
+# Unified installer for Kevin Bot
+# Merges functionality of the previous install_all.sh, install_stop.sh,
+# and install_systemd_user.sh into a single script.
+# Usage: ./install_all.sh [options]
 
+# Defaults
 FORCE=0
 SYMLINKS=1
 DESKTOP=1
 SKIP_VENV=0
 INSTALL_MAN=0
 INSTALL_TLDR=0
+INSTALL_SYSTEMD=0
+ENABLE_LINGER=0
+
+print_usage() {
+  cat <<EOF
+Usage: $0 [options]
+Options:
+  -f, --force           Non-interactive (assume yes)
+  --no-symlinks         Don't install global symlinks (/usr/local/bin)
+  --no-desktop          Don't copy .desktop launcher to Desktop
+  --skip-venv           Skip virtualenv creation and pip install
+  --install-man         Install man page
+  --install-tldr        Install tldr page
+  --install-systemd     Install systemd --user unit and start service
+  --enable-linger       When installing systemd, enable linger via loginctl
+  --install-all         Do everything (non-interactive)
+  -h, --help            Show this help
+EOF
+}
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -24,9 +42,10 @@ while [ $# -gt 0 ]; do
     --install-man) INSTALL_MAN=1; shift ;;
     --install-tldr) INSTALL_TLDR=1; shift ;;
     --install-systemd) INSTALL_SYSTEMD=1; shift ;;
-    --install-all) FORCE=1; SYMLINKS=1; DESKTOP=1; INSTALL_MAN=1; INSTALL_TLDR=1; SKIP_VENV=0; INSTALL_SYSTEMD=1; shift ;;
-    -h|--help) echo "Usage: $0 [-f|--force] [--no-symlinks] [--no-desktop] [--skip-venv] [--install-man] [--install-tldr] [--install-systemd] [--install-all]"; exit 0 ;;
-    *) echo "Unknown argument: $1"; exit 1 ;;
+    --enable-linger) ENABLE_LINGER=1; shift ;;
+    --install-all) FORCE=1; SYMLINKS=1; DESKTOP=1; INSTALL_MAN=1; INSTALL_TLDR=1; SKIP_VENV=0; INSTALL_SYSTEMD=1; ENABLE_LINGER=0; shift ;;
+    -h|--help) print_usage; exit 0 ;;
+    *) echo "Unknown argument: $1"; print_usage; exit 1 ;;
   esac
 done
 
@@ -35,10 +54,9 @@ echo "Starting Kevin Bot installer..."
 # Resolve script and project root so installer works from any CWD or when invoked via symlink
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-# Work in project root
 cd "$PROJECT_ROOT" || true
 
-# Check python3
+# Basic checks
 if ! command -v python3 >/dev/null 2>&1; then
   echo "Error: python3 not found. Please install Python 3.8+" >&2
   exit 1
@@ -56,11 +74,9 @@ if [ "$SKIP_VENV" -eq 0 ]; then
     echo "Virtualenv .venv already exists."
   fi
 
-  # Activate
   # shellcheck disable=SC1091
   . "$PROJECT_ROOT/.venv/bin/activate"
 
-  # Install requirements
   if [ -f "$PROJECT_ROOT/requirements.txt" ]; then
     echo "Installing Python dependencies from requirements.txt..."
     pip install --upgrade pip
@@ -73,7 +89,7 @@ else
 fi
 
 # Make helper scripts executable (Scripts/ directory)
-for f in "$SCRIPT_DIR"/run.sh "$SCRIPT_DIR"/stop.sh "$SCRIPT_DIR"/install_stop.sh "$SCRIPT_DIR"/clean_project.sh "$SCRIPT_DIR"/kevin-status.sh "$SCRIPT_DIR"/kevin-log.sh "$SCRIPT_DIR"/kevin-man.sh "$SCRIPT_DIR"/kevin.tldr.sh; do
+for f in "$SCRIPT_DIR"/run.sh "$SCRIPT_DIR"/stop.sh "$SCRIPT_DIR"/clean_project.sh "$SCRIPT_DIR"/kevin-status.sh "$SCRIPT_DIR"/kevin-log.sh "$SCRIPT_DIR"/kevin-man.sh; do
   if [ -f "$f" ]; then
     chmod +x "$f" || true
     echo "Ensured $(basename "$f") is executable"
@@ -167,42 +183,45 @@ if [ ! -d "$HOME_DESKTOP" ]; then
 fi
 
 
+# Helper: install a symlink, using sudo if necessary (interactive unless forced)
+install_symlink() {
+  local target=$1 name=$2 link="/usr/local/bin/$2"
+
+  if [ ! -f "$target" ]; then
+    echo "Warning: $target not found; skipping $name symlink.";
+    return
+  fi
+
+  if [ -w "$(dirname "$link")" ]; then
+    ln -sf "$target" "$link"
+    echo "Installed $link -> $target"
+  else
+    if [ "$FORCE" -eq 1 ]; then
+      sudo ln -sf "$target" "$link"
+      echo "Installed $link -> $target (sudo used)."
+    else
+      echo "Need sudo to install $link. Proceed and use sudo? (y/N)"
+      read -r ans
+      case "$ans" in
+        [Yy]|[Yy][Ee][Ss]) sudo ln -sf "$target" "$link"; echo "Installed $link -> $target" ;;
+        *) echo "Skipped $link" ;;
+      esac
+    fi
+  fi
+}
 
 # Install symlinks
 if [ "$SYMLINKS" -eq 1 ]; then
-  for name in kevin-stop kevin-start kevin-status kevin-log kevin-man kevin-tldr; do
-    case "$name" in
-      kevin-stop) TARGET="$SCRIPT_DIR/stop.sh" ;;
-      kevin-start) TARGET="$SCRIPT_DIR/run.sh" ;;
-      kevin-status) TARGET="$SCRIPT_DIR/kevin-status.sh" ;;
-      kevin-log) TARGET="$SCRIPT_DIR/kevin-log.sh" ;;
-      kevin-man) TARGET="$PROJECT_ROOT/kevin.1" ;;
-      kevin-tldr) TARGET="$PROJECT_ROOT/tldr-kevin.md" ;;
-    esac
-    LINK="/usr/local/bin/$name"
-
-    if [ ! -f "$TARGET" ]; then
-      echo "Warning: $TARGET not found; skipping $name symlink.";
-      continue
-    fi
-
-    if [ -w "$(dirname "$LINK")" ]; then
-      ln -sf "$TARGET" "$LINK"
-      echo "Installed $LINK -> $TARGET"
-    else
-      if [ "$FORCE" -eq 1 ]; then
-        sudo ln -sf "$TARGET" "$LINK"
-        echo "Installed $LINK -> $TARGET (sudo used)."
-      else
-        echo "Need sudo to install $LINK. Proceed and use sudo? (y/N)"
-        read -r ans
-        case "$ans" in
-          [Yy]|[Yy][Ee][Ss]) sudo ln -sf "$TARGET" "$LINK"; echo "Installed $LINK -> $TARGET" ;;
-          *) echo "Skipped $LINK" ;;
-        esac
-      fi
-    fi
-  done
+  install_symlink "$SCRIPT_DIR/stop.sh" kevin-stop
+  install_symlink "$SCRIPT_DIR/run.sh" kevin-start
+  install_symlink "$SCRIPT_DIR/kevin-status.sh" kevin-status
+  install_symlink "$SCRIPT_DIR/kevin-log.sh" kevin-log
+  if [ -f "$PROJECT_ROOT/kevin.1" ]; then
+    install_symlink "$PROJECT_ROOT/kevin.1" kevin-man
+  fi
+  if [ -f "$PROJECT_ROOT/tldr-kevin.md" ]; then
+    install_symlink "$PROJECT_ROOT/tldr-kevin.md" kevin-tldr
+  fi
 fi
 
 # Desktop entry
@@ -214,7 +233,7 @@ if [ "$DESKTOP" -eq 1 ] && [ -f Kevin_Bot.desktop ]; then
   echo "Copied Kevin_Bot.desktop to $HOME_DESKTOP"
 fi
 
-# Optional: install man page and tldr entries
+# Install man page
 if [ "$INSTALL_MAN" -eq 1 ]; then
   if [ -f kevin.1 ]; then
     MAN_DIR="/usr/local/share/man/man1"
@@ -239,16 +258,7 @@ if [ "$INSTALL_MAN" -eq 1 ]; then
   fi
 fi
 
-# Optional: install systemd --user unit for kevin
-if [ "${INSTALL_SYSTEMD:-0}" -eq 1 ]; then
-  if [ -f "$SCRIPT_DIR/install_systemd_user.sh" ]; then
-    echo "Installing systemd --user unit for kevin..."
-    "$SCRIPT_DIR/install_systemd_user.sh" -f || echo "Failed to install systemd --user unit (you can run $SCRIPT_DIR/install_systemd_user.sh manually)."
-  else
-    echo "install_systemd_user.sh not found; skipping systemd install."
-  fi
-fi
-
+# Install tldr page
 if [ "$INSTALL_TLDR" -eq 1 ]; then
   if [ -f tldr-kevin.md ]; then
     TLDR_DIR="/usr/local/share/tldr"
@@ -273,6 +283,67 @@ if [ "$INSTALL_TLDR" -eq 1 ]; then
   else
     echo "tldr-kevin.md not found; skipping tldr install."
   fi
+fi
+
+# Function: install systemd --user unit
+install_systemd_user() {
+  UNIT_DIR="$HOME/.config/systemd/user"
+  UNIT_FILE="$UNIT_DIR/kevin.service"
+
+  if ! command -v systemctl >/dev/null 2>&1; then
+    echo "systemctl not found; cannot install systemd --user service." >&2
+    return 1
+  fi
+
+  mkdir -p "$UNIT_DIR"
+
+  cat > "$UNIT_FILE" <<EOF
+[Unit]
+Description=Kevin Bot (user)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$PROJECT_ROOT
+ExecStart=$SCRIPT_DIR/run.sh -f
+# Load environment from project kevin.env if present
+EnvironmentFile=$PROJECT_ROOT/kevin.env
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
+EOF
+
+  echo "Installed systemd user unit to $UNIT_FILE"
+
+  systemctl --user daemon-reload
+  systemctl --user enable --now kevin.service || true
+
+  if [ "$ENABLE_LINGER" -eq 1 ]; then
+    if command -v loginctl >/dev/null 2>&1; then
+      if [ "$FORCE" -eq 1 ]; then
+        sudo loginctl enable-linger "$USER" || true
+        echo "Enabled linger for $USER (sudo used)."
+      else
+        echo "Enable linger for $USER to allow services to run without active login? (y/N)"
+        read -r ans
+        case "$ans" in
+          [Yy]|[Yy][Ee][Ss]) sudo loginctl enable-linger "$USER"; echo "Enabled linger for $USER" ;;
+          *) echo "Skipped enabling linger" ;;
+        esac
+      fi
+    else
+      echo "loginctl not found; cannot enable linger" >&2
+    fi
+  fi
+}
+
+if [ "$INSTALL_SYSTEMD" -eq 1 ]; then
+  echo "Installing systemd --user unit for kevin..."
+  install_systemd_user || echo "Failed to install systemd --user unit; you can run this script with --install-systemd manually."
 fi
 
 # Summary
