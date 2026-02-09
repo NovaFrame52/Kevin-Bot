@@ -11,9 +11,7 @@ FORCE=0
 SYMLINKS=1
 DESKTOP=1
 SKIP_VENV=0
-INSTALL_MAN=0
 INSTALL_TLDR=0
-INSTALL_SYSTEMD=0
 ENABLE_LINGER=0
 
 print_usage() {
@@ -24,9 +22,7 @@ Options:
   --no-symlinks         Don't install global symlinks (/usr/local/bin)
   --no-desktop          Don't copy .desktop launcher to Desktop
   --skip-venv           Skip virtualenv creation and pip install
-  --install-man         Install man page
   --install-tldr        Install tldr page
-  --install-systemd     Install systemd --user unit and start service
   --enable-linger       When installing systemd, enable linger via loginctl
   --install-all         Do everything (non-interactive)
   -h, --help            Show this help
@@ -39,11 +35,9 @@ while [ $# -gt 0 ]; do
     --no-symlinks) SYMLINKS=0; shift ;;
     --no-desktop) DESKTOP=0; shift ;;
     --skip-venv) SKIP_VENV=1; shift ;;
-    --install-man) INSTALL_MAN=1; shift ;;
     --install-tldr) INSTALL_TLDR=1; shift ;;
-    --install-systemd) INSTALL_SYSTEMD=1; shift ;;
     --enable-linger) ENABLE_LINGER=1; shift ;;
-    --install-all) FORCE=1; SYMLINKS=1; DESKTOP=1; INSTALL_MAN=1; INSTALL_TLDR=1; SKIP_VENV=0; INSTALL_SYSTEMD=1; ENABLE_LINGER=0; shift ;;
+    --install-all) FORCE=1; SYMLINKS=1; DESKTOP=1; INSTALL_TLDR=1; SKIP_VENV=0; ENABLE_LINGER=0; shift ;;
     -h|--help) print_usage; exit 0 ;;
     *) echo "Unknown argument: $1"; print_usage; exit 1 ;;
   esac
@@ -234,28 +228,26 @@ if [ "$DESKTOP" -eq 1 ] && [ -f Kevin_Bot.desktop ]; then
 fi
 
 # Install man page
-if [ "$INSTALL_MAN" -eq 1 ]; then
-  if [ -f kevin.1 ]; then
-    MAN_DIR="/usr/local/share/man/man1"
-    if [ -w "$(dirname "$MAN_DIR")" ]; then
-      ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1" || true
-      echo "Installed man page to $MAN_DIR/kevin.1"
-    else
-      if [ "$FORCE" -eq 1 ]; then
-        sudo ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1" || true
-        echo "Installed man page to $MAN_DIR/kevin.1 (sudo used)"
-      else
-        echo "Need sudo to install man page to $MAN_DIR. Proceed and use sudo? (y/N)"
-        read -r ans
-        case "$ans" in
-          [Yy]|[Yy][Ee][Ss]) sudo ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1"; echo "Installed man page" ;;
-          *) echo "Skipped man page install" ;;
-        esac
-      fi
-    fi
+if [ -f kevin.1 ]; then
+  MAN_DIR="/usr/local/share/man/man1"
+  if [ -w "$(dirname "$MAN_DIR")" ]; then
+    ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1" || true
+    echo "Installed man page to $MAN_DIR/kevin.1"
   else
-    echo "kevin.1 man file not found; skipping man install."
+    if [ "$FORCE" -eq 1 ]; then
+      sudo ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1" || true
+      echo "Installed man page to $MAN_DIR/kevin.1 (sudo used)"
+    else
+      echo "Need sudo to install man page to $MAN_DIR. Proceed and use sudo? (y/N)"
+      read -r ans
+      case "$ans" in
+        [Yy]|[Yy][Ee][Ss]) sudo ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1"; echo "Installed man page" ;;
+        *) echo "Skipped man page install" ;;
+      esac
+    fi
   fi
+else
+  echo "kevin.1 man file not found; skipping man install."
 fi
 
 # Install tldr page
@@ -341,10 +333,8 @@ EOF
   fi
 }
 
-if [ "$INSTALL_SYSTEMD" -eq 1 ]; then
-  echo "Installing systemd --user unit for kevin..."
-  install_systemd_user || echo "Failed to install systemd --user unit; you can run this script with --install-systemd manually."
-fi
+echo "Installing systemd --user unit for kevin..."
+install_systemd_user || echo "Failed to install systemd --user unit; you can run this script with --install-systemd manually."
 
 # Summary
 echo "\nInstallation complete. Quick actions:"
