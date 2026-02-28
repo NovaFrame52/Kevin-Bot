@@ -12,8 +12,7 @@ Kevin is a Discord bot that provides reminders, moderation tools, and utility fe
 
 - Provides reminder functionality (simple and persistent reminders)
 - Offers moderation commands (purge, kick, ban, mute/unmute)
-- Includes utility commands (ping, dice rolling, quotes, DM sending)
-- Monitors website uptime and sends alerts
+- Includes utility commands (ping, dice rolling, quotes)
 - Supports both prefix commands (default: `?`) and slash commands
 - Logs activity to local files for debugging and operational purposes
 
@@ -45,7 +44,6 @@ Server administrators who add Kevin to their servers are responsible for:
 - Setting up mod roles and log channels as needed
 - Ensuring Bot commands are used appropriately by server members
 - Monitoring Bot behavior and removing it if problematic
-- Configuring the `ALLOWED_DM_USER_ID` setting if enabling DM functionality
 - Understanding that some features (like moderation commands) require specific Discord permissions
 
 ## 6. Features and Functionality
@@ -62,17 +60,8 @@ Server administrators who add Kevin to their servers are responsible for:
 - The Bot executes moderation actions as instructed by authorized users
 - We are not liable for moderation decisions or their consequences
 
-### 6.3 Website Monitoring
-- The Bot can monitor specified websites for availability
-- Monitoring intervals are configurable but subject to reasonable limits
-- Alerts are sent to configured channels or users when sites appear down
-- We do not guarantee 100% uptime monitoring accuracy
-
-### 6.4 Direct Messaging
-- DM functionality may be restricted to specific authorized users via configuration
-- Users are responsible for the content of DMs sent through the Bot
-- DM functionality should not be used for harassment or spam
-
+### 6.3 Removed Features
+- Website monitoring and direct messaging via the bot have been removed from Kevin. The bot focuses on reminders, moderation and utility commands.
 ## 7. Availability and Modifications
 
 We reserve the right to:

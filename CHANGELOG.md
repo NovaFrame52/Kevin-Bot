@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Current-Release]
 
+## [1.1.1] - 2026-02-27
+
+### Added
+- `?about` and `/about` commands display information about the bot's capabilities, configuration options, common commands, and useful links; the embed now includes richer descriptions.
+
+### Changed
+- Removed direct‑message command and support for website monitoring. These features are now gone to simplify code and address privacy concerns.
+- Dropped `aiohttp` dependency and cleaned up related configuration.
+- Updated documentation (README, TOS, Privacy Policy, env examples) to reflect removed features.
+
+### Improved
+- Cleaned up imports and removed unused environment variables.
+- Added full configuration subsystem:
+  * new `config` command group allows viewing and modifying prefix, timezone, reminder channel, aliases, etc.
+  * custom command aliases with on‑the‑fly rewriting.
+  * per‑guild timezone and reminder defaults.
+  * `modset` output now reflects expanded settings.
+- Added notes on possible future improvements (tests, modularization, CI).
+
+### Suggestions
+- Add unit tests and CI pipeline
+- Break `Kevin_Bot.py` into smaller modules for maintainability
+- Add type annotations and linting
+- Introduce packaging (setup.py/pyproject) and versioning
+- Consider adding automated deployment scripts or Docker support
+
+
 ## [1.1.0] - 2026-02-08
 
 ### Added

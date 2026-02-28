@@ -22,14 +22,13 @@ When Kevin operates in your Discord server, the Bot automatically collects:
 
 ### 2.2 Log Data
 
-Kevin maintains detailed logs for debugging and operational purposes, stored locally in files named `Kevin_Log_*.txt`. These logs may include:
+Kevin maintains detailed logs for debugging and operational purposes, stored locally in files named `Kevin_Log_*.txt` (timestamps formatted `YYYY-MM-DD_HH-MM-SS` for ease of reading). These logs may include:
 
 - Command invocations and Bot responses
 - Error messages and stack traces
 - User IDs, channel IDs, and server IDs
 - Timestamps of all events
 - Moderation actions and their outcomes
-- Website monitoring status checks and alerts
 - Bot startup and shutdown events
 
 ### 2.3 Persistent Storage
@@ -37,7 +36,7 @@ Kevin maintains detailed logs for debugging and operational purposes, stored loc
 Kevin stores certain data persistently in local files:
 
 - **Reminder Data**: Stored in `persistent_reminders.json` including user IDs, reminder messages, and scheduled times
-- **Server Configurations**: Stored in `configs.json` including per-server prefixes, mod roles, log channels, and welcome channels
+- **Server Configurations**: Stored in `configs.json` including per-server prefixes, mod roles, log channels and welcome channels; newer versions also record timezone preferences, default reminder channels and custom command aliases.
 - **Log Files**: Rotating log files stored in the configured desktop/log directory
 
 ### 2.4 Information We Do NOT Collect
@@ -48,7 +47,7 @@ Kevin does not collect, store, or process:
 - Private conversations between users
 - User email addresses or personal contact information beyond Discord usernames
 - Voice chat data or recordings
-- Attachments or media files (except temporarily to relay DM attachments)
+- Attachments or media files
 - Messages in channels where the Bot lacks access
 - Data from servers where the Bot is not present
 
@@ -60,7 +59,7 @@ We use collected information solely for the following purposes:
 - **Reminder System**: To store and deliver reminders at requested times
 - **Moderation**: To execute moderation commands and log moderation actions
 - **Server Configuration**: To remember per-server settings (prefixes, roles, channels)
-- **Website Monitoring**: To check website availability and send alerts
+
 - **Logging & Debugging**: To diagnose issues, monitor performance, and improve the Bot
 - **Command Authentication**: To verify permissions for restricted commands
 
@@ -104,9 +103,6 @@ Kevin uses Discord's API to function and necessarily shares data with Discord ac
 - Slash command interactions
 - DM messages sent via the Bot
 
-### 5.3 Website Monitoring
-
-When configured for website monitoring, the Bot makes HTTP requests to the monitored website. These requests originate from the server hosting the Bot and may be logged by the monitored website according to their own privacy policies.
 
 ### 5.4 Legal Requirements
 
@@ -233,19 +229,9 @@ However, given Kevin's self-hosted nature, individual deployments are the respon
 - Moderation logs are retained in log files according to the retention policy
 - Server administrators are responsible for managing moderation logs appropriately
 
-### 15.3 Website Monitoring
+### 15.3 Removed Features
 
-- The Bot makes HTTP requests to monitored websites at configured intervals
-- Request outcomes (success/failure, status codes) are logged
-- Alerts are sent to configured channels or users when sites appear down
-- The monitored website may log the Bot's requests according to their own policies
-
-### 15.4 DM Functionality
-
-- The DM command allows authorized users to send messages to server members
-- DM content is temporarily processed but not permanently stored (beyond standard logs)
-- Image attachments are relayed through Discord's infrastructure
-- Use of DM functionality is restricted by the `ALLOWED_DM_USER_ID` configuration
+Website monitoring and direct‑message commands have been removed from the project; the bot no longer makes external HTTP requests or relays user‑to‑user DM messages.
 
 ## 16. GDPR Compliance (European Users)
 

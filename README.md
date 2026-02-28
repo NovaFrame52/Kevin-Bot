@@ -41,6 +41,39 @@ Kevin is a small Discord bot for reminders and periodic messages.
 - To install the local man page: `./install_all.sh --install-man` (may prompt for sudo) and then run `man kevin` or `man ./kevin.1` to view locally.
 - To install the tldr page: `./install_all.sh --install-tldr` (may prompt for sudo). If you use a local tldr client, you can copy `tldr-kevin.md` into its pages directory; otherwise view the file directly: `less tldr-kevin.md`.
 
+## Configuration
+
+Kevin supports extensive per‑guild configuration via the `config` command group. Only users with the **Manage Server** permission can change settings.
+
+Examples:
+
+```text
+?config show                # dump current configuration
+?config prefix !            # change command prefix to '!' 
+?config timezone America/New_York
+?config remindchan updates   # reminders default to #updates channel
+?config alias add r 5m remind {0}         # shorthand for reminders
+?config alias list
+?config alias remove r
+```
+
+There is also a simple `?about` (slash `/about`) command which displays a nicely formatted summary of Kevin's features, commands, configuration options, and links to source/help; it can be handy for new users.
+
+The following keys are stored per guild:
+
+* `prefix` – command prefix used by the bot (default `?`)
+* `mod_role` – name of the role whose holders may use moderation commands
+* `log_channel`, `welcome_channel` – channel names used by modset commands
+* `timezone` – optional time zone name used for scheduling and display
+* `reminder_channel` – default channel name where reminders are posted
+* `aliases` – map of custom command aliases (expansions are inserted before processing)
+
+Aliases are applied in the `on_message` event; if a message begins with prefix+alias it is rewritten
+before command parsing (slash commands also support alias management via dedicated subcommands).
+
+Most configuration options are also exposed as slash commands under `/config` (e.g. `/config prefix`,
+`/config timezone`, `/config alias_add`, etc.), which may be more convenient for server admins.
+
 ## Suggested output examples
 
 - `kevin-status` (bot running):
@@ -49,7 +82,7 @@ Kevin is a small Discord bot for reminders and periodic messages.
 Kevin Bot running (PIDs): 12345
   PID    CMD                          ELAPSED
  12345   python3 Kevin_Bot.py          01:23:45
-Latest log: /home/aster/Desktop/Kevin_Log_20260204_120000.txt
+Latest log: /home/aster/Desktop/Kevin_Log_2026-02-04_12-00-00.txt
 Persistent reminders stored: 2
 ```
 

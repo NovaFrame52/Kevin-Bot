@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 import logging
 import logging.handlers
 import re
-import aiohttp
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 from discord import app_commands, Interaction
 from datetime import datetime
 
@@ -24,7 +23,8 @@ ROOT = Path(__file__).parent
 DESKTOP_PATH = os.environ.get("KEVIN_DESKTOP_PATH", str(Path.home() / "Desktop"))
 DESKTOP_PATH = str(Path(os.path.expanduser(DESKTOP_PATH)))
 Path(DESKTOP_PATH).mkdir(parents=True, exist_ok=True)
-LOG_FILE = f"{DESKTOP_PATH}/Kevin_Log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+# use a human-readable timestamp (hyphens between date components and time) in log
+LOG_FILE = f"{DESKTOP_PATH}/Kevin_Log_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
 
 logger = logging.getLogger("kevin_bot")
 logger.setLevel(logging.INFO)
@@ -60,11 +60,16 @@ def save_configs():
 
 
 def get_guild_config(guild_id: int):
+    # configuration per guild; new fields may be added over time
     return CONFIGS.setdefault(str(guild_id), {
         "prefix": DEFAULT_PREFIX,
         "mod_role": None,
         "log_channel": None,
         "welcome_channel": None,
+        # added for enhanced config
+        "timezone": None,                  # e.g. "UTC", "America/New_York"
+        "reminder_channel": None,          # default channel name for reminders
+        "aliases": {},                     # custom command aliases
     })
 
 
@@ -82,6 +87,26 @@ async def determine_prefix(bot, message):
 
 
 bot = commands.Bot(command_prefix=determine_prefix, intents=intents, description="Kevin - merged with Ron")
+
+# intercept messages to process custom aliases
+@bot.event
+async def on_message(message):
+    # preserve normal behavior for bots and DMs
+    if message.author.bot or not message.guild:
+        await bot.process_commands(message)
+        return
+
+    cfg = get_guild_config(message.guild.id)
+    aliases = cfg.get("aliases", {}) or {}
+    prefix = cfg.get("prefix", DEFAULT_PREFIX)
+    for alias, expansion in aliases.items():
+        if message.content.startswith(prefix + alias):
+            # rewrite the command portion and leave remainder intact
+            suffix = message.content[len(prefix + alias):]
+            message.content = prefix + expansion + suffix
+            break
+
+    await bot.process_commands(message)
 try:
     bot.remove_command('help')
 except Exception:
@@ -96,7 +121,7 @@ QUOTES = [
 ]
 
 
-ALLOWED_DM_USER_ID = int(os.getenv("ALLOWED_DM_USER_ID", "0")) if os.getenv("ALLOWED_DM_USER_ID") else None
+# DM functionality has been removed; the ALLOWED_DM_USER_ID setting is no longer used.
 
 
 async def log_action(guild, description: str):
@@ -113,7 +138,6 @@ async def log_action(guild, description: str):
         pass
 
 
-# Basic commands (from Ron)
 @bot.command()
 async def ping(ctx):
     latency = round(bot.latency * 1000)
@@ -173,6 +197,105 @@ async def slash_quote(interaction: discord.Interaction):
     await interaction.response.send_message(random.choice(QUOTES))
 
 
+# About command – provide information about Kevin’s capabilities
+@bot.command()
+async def about(ctx):
+    embed = discord.Embed(
+        title="🤖 Kevin Bot",
+        description=(
+            "A simple Discord helper for reminders, moderation, and utilities. "
+            "Made with ❤️ to help you stay on top of tasks and keep your server "
+            "organized."
+        ),
+        color=discord.Color.blue()
+    )
+    embed.add_field(
+        name="Features",
+        value=(
+            "⏰ Schedule one‑off or recurring reminders, "
+            "🛠️ perform basic moderation actions, and "
+            "⚙️ tweak behaviour with per‑guild settings."
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="Commands",
+        value=(
+            "`?remind` `?myreminders` `?ping` `?roll` `?quote` "
+            "`?purge` `?kick` `?ban` `?mute` `?unmute` `?config` "
+            "`?about`"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="Configuration",
+        value=(
+            "`?config show` `?config prefix` `?config timezone` `?config alias_add` "
+            "etc. (also available as slash commands)"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="More info",
+        value=(
+            "Source: https://github.com/Kevin-Bot \n"  # placeholder link
+            "Type `?help` or `/help` for details"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="Use both prefix (?) and slash (/) commands!")
+    await ctx.send(embed=embed)
+
+
+@bot.tree.command(name="about")
+async def slash_about(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🤖 Kevin Bot",
+        description=(
+            "A simple Discord helper for reminders, moderation, and utilities. "
+            "Made with ❤️ to help you stay on top of tasks and keep your server "
+            "organized."
+        ),
+        color=discord.Color.blue()
+    )
+    embed.add_field(
+        name="Features",
+        value=(
+            "⏰ Schedule one‑off or recurring reminders, "
+            "🛠️ perform basic moderation actions, and "
+            "⚙️ tweak behaviour with per‑guild settings."
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="Commands",
+        value=(
+            "`/remind` `/myreminders` `/ping` `/roll` `/quote` "
+            "`/purge` `/kick` `/ban` `/mute` `/unmute` `/config` "
+            "`/about`"
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="Configuration",
+        value=(
+            "`/config show` `/config prefix` `/config timezone` `/config alias_add` "
+            "etc."
+        ),
+        inline=False
+    )
+    embed.add_field(
+        name="More info",
+        value=(
+            "Source: https://github.com/Kevin-Bot \n"
+            "Type `?help` or `/help` for details"
+        ),
+        inline=False
+    )
+    embed.set_footer(text="Use both prefix (?) and slash (/) commands!")
+    await interaction.response.send_message(embed=embed)
+
+
 # Simple remind (Ron style) — not the Kevin persistent system
 @bot.command()
 async def remind(ctx, minutes: float, *, message: str):
@@ -225,104 +348,8 @@ async def slash_remind(interaction: discord.Interaction, minutes: float, message
     asyncio.create_task(_reminder(minutes * 60, interaction.user, message))
 
 
-# DM command restricted (Ron)
-@bot.command(name="dm")
-async def dm(ctx, member: discord.Member, *, message: str):
-    if ALLOWED_DM_USER_ID and getattr(ctx.author, 'id', None) != ALLOWED_DM_USER_ID:
-        await ctx.send("You are not allowed to use this command.")
-        return
-    try:
-        await ctx.message.delete()
-    except Exception:
-        pass
-
-    attachment = None
-    try:
-        if ctx.message.attachments:
-            attachment = ctx.message.attachments[0]
-    except Exception:
-        attachment = None
-
-    try:
-        if attachment:
-            file = await attachment.to_file()
-            await member.send(content=message or None, file=file)
-        else:
-            m = re.search(r"(https?://\S+\.(?:png|jpg|jpeg|gif|webp))", message or "", re.IGNORECASE)
-            if m:
-                url = m.group(1)
-                embed = discord.Embed()
-                embed.set_image(url=url)
-                await member.send(content=(message or None), embed=embed)
-            else:
-                await member.send(message or None)
-        try:
-            await ctx.author.send(f"Sent DM to {member.display_name}.")
-        except Exception:
-            pass
-    except Exception as e:
-        try:
-            await ctx.author.send(f"Failed to send DM to {member.display_name}: {e}")
-        except Exception:
-            await ctx.send(f"Failed to send DM: {e}")
-
-
-@bot.tree.command(name="dm")
-@app_commands.describe(target="Member identifier (ID, mention, username#discrim, or name)", message="Message content")
-async def slash_dm(interaction: discord.Interaction, target: str, message: str, image: discord.Attachment = None):
-    if ALLOWED_DM_USER_ID and getattr(interaction.user, 'id', None) != ALLOWED_DM_USER_ID:
-        await interaction.response.send_message("You are not allowed to use this command.", ephemeral=True)
-        return
-    if not message:
-        await interaction.response.send_message("Missing message content.", ephemeral=True)
-        return
-    guild = interaction.guild
-    if guild is None:
-        await interaction.response.send_message("This command must be used in a server.", ephemeral=True)
-        return
-    resolved = None
-    tid = None
-    if target.startswith("<@") and target.endswith(">"):
-        digits = ''.join(c for c in target if c.isdigit())
-        if digits:
-            tid = digits
-    elif target.isdigit():
-        tid = target
-    if tid:
-        try:
-            resolved = guild.get_member(int(tid))
-        except Exception:
-            resolved = None
-    if resolved is None and "#" in target:
-        name, discrim = target.rsplit("#", 1)
-        for m in guild.members:
-            if m.name == name and m.discriminator == discrim:
-                resolved = m
-                break
-    if resolved is None:
-        for m in guild.members:
-            if m.display_name == target or m.name == target:
-                resolved = m
-                break
-    if resolved is None:
-        await interaction.response.send_message(f"Could not resolve target member: {target}. Use a mention, ID, or username#discrim.", ephemeral=True)
-        return
-    try:
-        if image:
-            file = await image.to_file()
-            await resolved.send(content=message or None, file=file)
-        else:
-            m = re.search(r"(https?://\S+\.(?:png|jpg|jpeg|gif|webp))", message or "", re.IGNORECASE)
-            if m:
-                url = m.group(1)
-                embed = discord.Embed()
-                embed.set_image(url=url)
-                await resolved.send(content=(message or None), embed=embed)
-            else:
-                await resolved.send(message or None)
-        await interaction.response.send_message(f"Sent DM to {resolved.display_name}.", ephemeral=True)
-    except Exception as e:
-        await interaction.response.send_message(f"Failed to send DM: {e}", ephemeral=True)
+# DM commands have been removed per project decision.
+# Direct messaging other users via the bot is no longer supported.
 
 
 # Moderation commands (Ron)
@@ -595,11 +622,17 @@ async def slash_unmute(interaction: discord.Interaction, member: discord.Member)
 @bot.group(name="modset", invoke_without_command=True)
 async def modset(ctx):
     cfg = get_guild_config(ctx.guild.id)
+    # build a summary including extended fields
+    aliases = cfg.get('aliases') or {}
+    alias_list = ', '.join(f"{k}->{v}" for k, v in aliases.items()) if aliases else 'none'
     msg = (
         f"Prefix: {cfg.get('prefix')}\n"
         f"Mod role: {cfg.get('mod_role')}\n"
         f"Log channel: {cfg.get('log_channel')}\n"
-        f"Welcome channel: {cfg.get('welcome_channel')}"
+        f"Welcome channel: {cfg.get('welcome_channel')}\n"
+        f"Timezone: {cfg.get('timezone')}\n"
+        f"Reminder channel: {cfg.get('reminder_channel')}\n"
+        f"Aliases: {alias_list}"
     )
     await ctx.send(msg)
 
@@ -640,75 +673,8 @@ async def modset_welcome(ctx, channel_name: str):
     await ctx.send(f"Welcome channel set to {channel_name}")
 
 
-# Website monitoring: alert 'asters.world' by DM when site is down
-TARGET_URL = "https://portfolio.aetherassembly.org"
-MONITOR_INTERVAL_MINUTES = int(os.getenv("WEBSITE_MONITOR_INTERVAL_MINUTES", "1"))
-# Configure notification target: either a guild id/channel id, or fallback behavior
-MONITOR_NOTIFY_GUILD_ID = os.getenv("MONITOR_NOTIFY_GUILD_ID")
-MONITOR_NOTIFY_CHANNEL_ID = os.getenv("MONITOR_NOTIFY_CHANNEL_ID")
-MONITOR_NOTIFY_CHANNEL_NAME = os.getenv("MONITOR_NOTIFY_CHANNEL_NAME", "general")
-ASTER_DISPLAY_NAME = os.getenv("ASTER_DISPLAY_NAME", "asters.world")
-
-
-async def notify_site_down(reason: str):
-    """Notify the configured guild/channel if present; otherwise fallback to DMing a named user if found."""
-    # Try guild/channel notification first if configured
-    if MONITOR_NOTIFY_GUILD_ID:
-        try:
-            gid = int(MONITOR_NOTIFY_GUILD_ID)
-            guild = bot.get_guild(gid)
-            if guild:
-                # prefer channel id, then channel name
-                ch = None
-                if MONITOR_NOTIFY_CHANNEL_ID:
-                    try:
-                        cid = int(MONITOR_NOTIFY_CHANNEL_ID)
-                        ch = guild.get_channel(cid) or bot.get_channel(cid)
-                    except Exception:
-                        ch = None
-                if ch is None:
-                    ch = discord.utils.get(guild.text_channels, name=MONITOR_NOTIFY_CHANNEL_NAME)
-                if ch and ch.permissions_for(guild.me).send_messages:
-                    try:
-                        await ch.send(f"⚠️ The monitored site {TARGET_URL} appears to be down: {reason}")
-                        log(f"Notified guild {guild.id} channel {ch.id} about site down")
-                        return
-                    except Exception as e:
-                        log(f"Failed to send monitor message to guild {guild.id} channel: {e}")
-                else:
-                    log(f"Monitor: could not find sendable channel in guild {gid}")
-            else:
-                log(f"Monitor: bot is not in guild {gid}")
-        except Exception as e:
-            log(f"Monitor notify guild handling error: {e}")
-
-    # Fallback: DM a user with display/name matching ASTER_DISPLAY_NAME
-    sent_any = False
-    for guild in bot.guilds:
-        for member in guild.members:
-            if member.name == ASTER_DISPLAY_NAME or member.display_name == ASTER_DISPLAY_NAME:
-                try:
-                    await member.send(f"⚠️ The monitored site {TARGET_URL} appears to be down: {reason}")
-                    log(f"Notified {member} about website down")
-                    sent_any = True
-                except Exception as e:
-                    log(f"Failed to DM {member}: {e}")
-    if not sent_any:
-        log(f"Could not find member '{ASTER_DISPLAY_NAME}' to DM about site outage; reason: {reason}")
-
-
-@tasks.loop(minutes=MONITOR_INTERVAL_MINUTES)
-async def website_monitor():
-    await bot.wait_until_ready()
-    try:
-        timeout = aiohttp.ClientTimeout(total=15)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(TARGET_URL) as resp:
-                status = resp.status
-                if status < 200 or status >= 400:
-                    await notify_site_down(f"HTTP {status}")
-    except Exception as e:
-        await notify_site_down(str(e))
+# Website monitoring support has been removed to simplify the project and remove external HTTP dependencies.
+# (aiohttp is no longer required.)
 
 
 @bot.event
@@ -719,13 +685,200 @@ async def on_ready():
         log("Synced application (slash) commands with Discord")
     except Exception as e:
         log(f"Failed to sync application commands: {e}")
-    # start site monitor
-    try:
-        website_monitor.start()
-        log("Started website monitor task")
-    except Exception as e:
-        log(f"Failed to start website monitor: {e}")
+    # website monitor disabled (feature removed)
 
+
+# configuration helpers
+@bot.group(name="config")
+@commands.has_permissions(manage_guild=True)
+async def config(ctx):
+    """View or change guild configuration. Available subcommands: show, prefix, modrole,
+    logchannel, welcome, timezone, remindchan, alias."""
+    if ctx.invoked_subcommand is None:
+        await ctx.send("Usage: config <subcommand> (show|prefix|modrole|logchannel|welcome|timezone|remindchan|alias)")
+
+
+@config.command(name="show")
+async def config_show(ctx):
+    cfg = get_guild_config(ctx.guild.id)
+    # use simple string concatenation to avoid confusing backticks inside an f-string
+    await ctx.send("```\n" + json.dumps(cfg, indent=2) + "\n```")
+
+
+@config.command(name="prefix")
+async def config_prefix(ctx, new_prefix: str):
+    cfg = get_guild_config(ctx.guild.id)
+    cfg["prefix"] = new_prefix
+    save_configs()
+    await ctx.send(f"Prefix set to `{new_prefix}`")
+
+
+@config.command(name="modrole")
+async def config_modrole(ctx, *, role_name: str = None):
+    cfg = get_guild_config(ctx.guild.id)
+    cfg["mod_role"] = role_name
+    save_configs()
+    await ctx.send(f"Mod role set to `{role_name}`")
+
+
+@config.command(name="logchannel")
+async def config_logchannel(ctx, *, channel_name: str = None):
+    cfg = get_guild_config(ctx.guild.id)
+    cfg["log_channel"] = channel_name
+    save_configs()
+    await ctx.send(f"Log channel set to `{channel_name}`")
+
+
+@config.command(name="welcome")
+async def config_welcome(ctx, *, channel_name: str = None):
+    cfg = get_guild_config(ctx.guild.id)
+    cfg["welcome_channel"] = channel_name
+    save_configs()
+    await ctx.send(f"Welcome channel set to `{channel_name}`")
+
+
+@config.command(name="timezone")
+async def config_timezone(ctx, timezone: str = None):
+    cfg = get_guild_config(ctx.guild.id)
+    cfg["timezone"] = timezone
+    save_configs()
+    await ctx.send(f"Timezone set to `{timezone}`")
+
+
+@config.command(name="remindchan")
+async def config_remindchan(ctx, *, channel_name: str = None):
+    cfg = get_guild_config(ctx.guild.id)
+    cfg["reminder_channel"] = channel_name
+    save_configs()
+    await ctx.send(f"Default reminder channel set to `{channel_name}`")
+
+
+@config.group(name="alias")
+async def config_alias(ctx):
+    if ctx.invoked_subcommand is None:
+        await ctx.send("Usage: config alias add|remove|list")
+
+
+@config_alias.command(name="add")
+async def config_alias_add(ctx, alias: str, *, expansion: str):
+    cfg = get_guild_config(ctx.guild.id)
+    al = cfg.setdefault("aliases", {})
+    al[alias] = expansion
+    save_configs()
+    await ctx.send(f"Alias `{alias}` -> `{expansion}` added.")
+
+
+@config_alias.command(name="remove")
+async def config_alias_remove(ctx, alias: str):
+    cfg = get_guild_config(ctx.guild.id)
+    al = cfg.get("aliases", {})
+    if alias in al:
+        del al[alias]
+        save_configs()
+        await ctx.send(f"Alias `{alias}` removed.")
+    else:
+        await ctx.send(f"No alias named `{alias}`")
+
+
+@config_alias.command(name="list")
+async def config_alias_list(ctx):
+    cfg = get_guild_config(ctx.guild.id)
+    al = cfg.get("aliases", {})
+    if al:
+        lines = "\n".join(f"{k} -> {v}" for k, v in al.items())
+        await ctx.send(f"Aliases:\n{lines}")
+    else:
+        await ctx.send("No aliases defined.")
+
+
+# Slash command group for configuration
+config_group = app_commands.Group(name="config", description="View or change guild configuration")
+
+@config_group.command(name="show")
+async def slash_config_show(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
+        return
+    cfg = get_guild_config(interaction.guild.id)
+    await interaction.response.send_message("```\n" + json.dumps(cfg, indent=2) + "\n```", ephemeral=True)
+
+@config_group.command(name="prefix")
+@app_commands.describe(new_prefix="New command prefix")
+async def slash_config_prefix(interaction: discord.Interaction, new_prefix: str):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
+        return
+    cfg = get_guild_config(interaction.guild.id)
+    cfg["prefix"] = new_prefix
+    save_configs()
+    await interaction.response.send_message(f"Prefix set to `{new_prefix}`", ephemeral=True)
+
+@config_group.command(name="timezone")
+@app_commands.describe(timezone="Time zone identifier, e.g. UTC or America/New_York")
+async def slash_config_timezone(interaction: discord.Interaction, timezone: str):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
+        return
+    cfg = get_guild_config(interaction.guild.id)
+    cfg["timezone"] = timezone
+    save_configs()
+    await interaction.response.send_message(f"Timezone set to `{timezone}`", ephemeral=True)
+
+@config_group.command(name="remindchan")
+@app_commands.describe(channel_name="Channel name to use for reminders by default")
+async def slash_config_remindchan(interaction: discord.Interaction, channel_name: str):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
+        return
+    cfg = get_guild_config(interaction.guild.id)
+    cfg["reminder_channel"] = channel_name
+    save_configs()
+    await interaction.response.send_message(f"Default reminder channel set to `{channel_name}`", ephemeral=True)
+
+
+# alias subcommands
+@config_group.command(name="alias_add")
+@app_commands.describe(alias="alias text", expansion="command to run")
+async def slash_config_alias_add(interaction: discord.Interaction, alias: str, expansion: str):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
+        return
+    cfg = get_guild_config(interaction.guild.id)
+    al = cfg.setdefault("aliases", {})
+    al[alias] = expansion
+    save_configs()
+    await interaction.response.send_message(f"Alias `{alias}` -> `{expansion}` added.", ephemeral=True)
+
+@config_group.command(name="alias_remove")
+@app_commands.describe(alias="alias to remove")
+async def slash_config_alias_remove(interaction: discord.Interaction, alias: str):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
+        return
+    cfg = get_guild_config(interaction.guild.id)
+    al = cfg.get("aliases", {})
+    if alias in al:
+        del al[alias]
+        save_configs()
+        await interaction.response.send_message(f"Alias `{alias}` removed.", ephemeral=True)
+    else:
+        await interaction.response.send_message(f"Alias `{alias}` not found.", ephemeral=True)
+
+@config_group.command(name="alias_list")
+async def slash_config_alias_list(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.manage_guild:
+        await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
+        return
+    cfg = get_guild_config(interaction.guild.id)
+    al = cfg.get("aliases", {})
+    if al:
+        lines = "\n".join(f"{k} -> {v}" for k, v in al.items())
+        await interaction.response.send_message(f"Aliases:\n{lines}", ephemeral=True)
+    else:
+        await interaction.response.send_message("No aliases defined.", ephemeral=True)
+
+# register the group
+bot.tree.add_command(config_group)
 
 # Admin command to force-sync application commands
 @bot.command()

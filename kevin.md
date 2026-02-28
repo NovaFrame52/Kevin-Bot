@@ -45,8 +45,6 @@ Additional commands merged from Ron:
 
 `?quote` — Random short quote
 
-`?dm <member> <message>` — Send DM to member (restricted by config)
-
 Moderation (requires mod role or admin): `?purge`, `?kick`, `?ban`, `?mute`, `?unmute`, and the `?modset` group for settings.
 
 `?synccommands` — (admin) Force Discord slash command sync if needed.

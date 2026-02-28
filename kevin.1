@@ -43,8 +43,6 @@ Discord commands (available as prefix commands with `?` and as slash `/` command
 .TP
 ?quote — Send a random short quote.
 .TP
-?dm <member> <message> — (restricted) Send a DM to a member (see project configs).
-.TP
 ?purge <n> — (mod) Delete recent messages in a channel.
 .TP
 ?kick <member> [reason] — (mod) Kick a member.
@@ -57,7 +55,11 @@ Discord commands (available as prefix commands with `?` and as slash `/` command
 .TP
 ?modset <subcommand> — View and set per-guild moderation settings (prefix, mod role, log/welcome channels).
 .TP
+?config <subcommand> — (admin) View or change guild configuration (prefix, timezone, aliases, etc.).
+.TP
 ?synccommands — (admin) Force-sync application (slash) commands with Discord.
+.TP
+?about — Display information about the bot's capabilities, configuration options, available commands, and helpful links (embed includes richer descriptions).
 
 These commands are also available as application (slash) commands (for example `/remind`, `/ping`, `/roll`, `/purge`, `/synccommands`) where supported by the server and Discord client.
 .SH EXAMPLES
@@ -74,7 +76,7 @@ Show status and last 20 lines
 Stream log until stop
 \fBkevin-log -t 200\fR
 .SH FILES
-$HOME/Desktop/Kevin_Log_*.txt
+$HOME/Desktop/Kevin_Log_*.txt  (timestamps are human-readable, e.g. 2026-02-27_14-30-00)
 $PROJECT_ROOT/kevin.env (local configuration file)
 .SH AUTHOR
 "Wyatt B (NovaFrame52)"

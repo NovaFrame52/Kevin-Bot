@@ -127,10 +127,13 @@ if [ ! -f "$PROJECT_ROOT/kevin.env" ]; then
     chmod 600 "$PROJECT_ROOT/kevin.env" || true
     echo "Created kevin.env from kevin.env.example (forced). Please edit and add your real DISCORD_TOKEN.";
   else
-    echo "kevin.env not found. Create kevin.env from example? (y/N)"
+    echo "kevin.env not found. Create kevin.env from example? (Y/n)"  # default yes
     read -r ans
     case "$ans" in
-      [Yy]|[Yy][Ee][Ss]) cp "$PROJECT_ROOT/kevin.env.example" "$PROJECT_ROOT/kevin.env" || true; chmod 600 "$PROJECT_ROOT/kevin.env" || true; echo "Created kevin.env; please edit and add your real DISCORD_TOKEN." ;;
+      ""|[Yy]|[Yy][Ee][Ss])
+        cp "$PROJECT_ROOT/kevin.env.example" "$PROJECT_ROOT/kevin.env" || true
+        chmod 600 "$PROJECT_ROOT/kevin.env" || true
+        echo "Created kevin.env; please edit and add your real DISCORD_TOKEN." ;;
       *) echo "kevin.env not created; remember to create it and add DISCORD_TOKEN." ;;
     esac
   fi
@@ -144,7 +147,7 @@ if [ -f kevin.env ]; then
       chmod 600 kevin.env || true
       echo "Set kevin.env permissions to 600 (forced)."
     else
-      echo "kevin.env exists and has permissions $current_perm. Change to 600? (y/N)"
+      echo "kevin.env exists and has permissions $current_perm. Change to 600? (Y/n)"  # default yes
       read -r ans
       case "$ans" in
         [Yy]|[Yy][Ee][Ss]) chmod 600 kevin.env || true; echo "Permissions set to 600." ;;
@@ -194,10 +197,10 @@ install_symlink() {
       sudo ln -sf "$target" "$link"
       echo "Installed $link -> $target (sudo used)."
     else
-      echo "Need sudo to install $link. Proceed and use sudo? (y/N)"
+      echo "Need sudo to install $link. Proceed and use sudo? (Y/n)"  # default yes
       read -r ans
       case "$ans" in
-        [Yy]|[Yy][Ee][Ss]) sudo ln -sf "$target" "$link"; echo "Installed $link -> $target" ;;
+        ""|[Yy]|[Yy][Ee][Ss]) sudo ln -sf "$target" "$link"; echo "Installed $link -> $target" ;;
         *) echo "Skipped $link" ;;
       esac
     fi
@@ -238,10 +241,10 @@ if [ -f kevin.1 ]; then
       sudo ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1" || true
       echo "Installed man page to $MAN_DIR/kevin.1 (sudo used)"
     else
-      echo "Need sudo to install man page to $MAN_DIR. Proceed and use sudo? (y/N)"
+      echo "Need sudo to install man page to $MAN_DIR. Proceed and use sudo? (Y/n)"  # default yes
       read -r ans
       case "$ans" in
-        [Yy]|[Yy][Ee][Ss]) sudo ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1"; echo "Installed man page" ;;
+        ""|[Yy]|[Yy][Ee][Ss]) sudo ln -sf "$(pwd)/kevin.1" "$MAN_DIR/kevin.1"; echo "Installed man page" ;;
         *) echo "Skipped man page install" ;;
       esac
     fi
@@ -264,10 +267,10 @@ if [ "$INSTALL_TLDR" -eq 1 ]; then
         sudo cp -f tldr-kevin.md "$TLDR_DIR/kevin.md"
         echo "Installed tldr page to $TLDR_DIR/kevin.md (sudo used)"
       else
-        echo "Need sudo to install tldr page to $TLDR_DIR. Proceed and use sudo? (y/N)"
+        echo "Need sudo to install tldr page to $TLDR_DIR. Proceed and use sudo? (Y/n)"  # default yes
         read -r ans
         case "$ans" in
-          [Yy]|[Yy][Ee][Ss]) sudo mkdir -p "$TLDR_DIR"; sudo cp -f tldr-kevin.md "$TLDR_DIR/kevin.md"; echo "Installed tldr page" ;;
+          ""|[Yy]|[Yy][Ee][Ss]) sudo mkdir -p "$TLDR_DIR"; sudo cp -f tldr-kevin.md "$TLDR_DIR/kevin.md"; echo "Installed tldr page" ;;
           *) echo "Skipped tldr page install" ;;
         esac
       fi
@@ -320,7 +323,7 @@ EOF
         sudo loginctl enable-linger "$USER" || true
         echo "Enabled linger for $USER (sudo used)."
       else
-        echo "Enable linger for $USER to allow services to run without active login? (y/N)"
+        echo "Enable linger for $USER to allow services to run without active login? (Y/n)"  # default yes
         read -r ans
         case "$ans" in
           [Yy]|[Yy][Ee][Ss]) sudo loginctl enable-linger "$USER"; echo "Enabled linger for $USER" ;;
