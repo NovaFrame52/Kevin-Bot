@@ -238,7 +238,7 @@ async def about(ctx):
     embed.add_field(
         name="More info",
         value=(
-            "Source: https://github.com/Kevin-Bot \n"  # placeholder link
+            "Source: https://github.com/novaframe52/Kevin-Bot \n"
             "Type `?help` or `/help` for details"
         ),
         inline=False
