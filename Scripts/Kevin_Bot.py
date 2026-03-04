@@ -287,7 +287,7 @@ async def slash_about(interaction: discord.Interaction):
     embed.add_field(
         name="More info",
         value=(
-            "Source: https://github.com/Kevin-Bot \n"
+            "Source: https://github.com/novaframe52/Kevin-Bot \n"
             "Type `?help` or `/help` for details"
         ),
         inline=False
