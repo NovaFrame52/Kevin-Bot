@@ -11,6 +11,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands, Interaction
 from datetime import datetime
+import itertools
 
 # Load .env if present
 try:
@@ -357,7 +358,7 @@ async def slash_remind(interaction: discord.Interaction, minutes: float, message
 async def purge(ctx, limit: int = 10):
     cfg = get_guild_config(ctx.guild.id)
     mod_role = cfg.get("mod_role")
-    if not (ctx.author.guild_permissions.administrator or ctx.author.guild_permissions.manage_guild):
+    if not (ctx.author.guild_permissions.administrator or ctx.author.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(ctx.guild.roles, name=mod_role)
             if not (role and role in ctx.author.roles):
@@ -380,7 +381,7 @@ async def slash_purge(interaction: discord.Interaction, limit: int = 10):
     cfg = get_guild_config(interaction.guild.id)
     mod_role = cfg.get("mod_role")
     user = interaction.user
-    if not (user.guild_permissions.administrator or user.guild_permissions.manage_guild):
+    if not (user.guild.permissions.administrator or user.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(interaction.guild.roles, name=mod_role)
             if not (role and role in user.roles):
@@ -398,7 +399,7 @@ async def slash_purge(interaction: discord.Interaction, limit: int = 10):
 async def kick(ctx, member: discord.Member, *, reason: str = None):
     cfg = get_guild_config(ctx.guild.id)
     mod_role = cfg.get("mod_role")
-    if not (ctx.author.guild_permissions.administrator or ctx.author.guild_permissions.manage_guild):
+    if not (ctx.author.guild.permissions.administrator or ctx.author.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(ctx.guild.roles, name=mod_role)
             if not (role and role in ctx.author.roles):
@@ -422,7 +423,7 @@ async def slash_kick(interaction: discord.Interaction, member: discord.Member, r
     cfg = get_guild_config(interaction.guild.id)
     mod_role = cfg.get("mod_role")
     user = interaction.user
-    if not (user.guild_permissions.administrator or user.guild_permissions.manage_guild):
+    if not (user.guild.permissions.administrator or user.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(interaction.guild.roles, name=mod_role)
             if not (role and role in user.roles):
@@ -443,7 +444,7 @@ async def slash_kick(interaction: discord.Interaction, member: discord.Member, r
 async def ban(ctx, member: discord.Member, days: int = 0, *, reason: str = None):
     cfg = get_guild_config(ctx.guild.id)
     mod_role = cfg.get("mod_role")
-    if not (ctx.author.guild_permissions.administrator or ctx.author.guild_permissions.manage_guild):
+    if not (ctx.author.guild.permissions.administrator or ctx.author.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(ctx.guild.roles, name=mod_role)
             if not (role and role in ctx.author.roles):
@@ -466,7 +467,7 @@ async def slash_ban(interaction: discord.Interaction, member: discord.Member, da
     cfg = get_guild_config(interaction.guild.id)
     mod_role = cfg.get("mod_role")
     user = interaction.user
-    if not (user.guild_permissions.administrator or user.guild_permissions.manage_guild):
+    if not (user.guild.permissions.administrator or user.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(interaction.guild.roles, name=mod_role)
             if not (role and role in user.roles):
@@ -487,7 +488,7 @@ async def slash_ban(interaction: discord.Interaction, member: discord.Member, da
 async def mute(ctx, member: discord.Member, minutes: int = 0):
     cfg = get_guild_config(ctx.guild.id)
     mod_role = cfg.get("mod_role")
-    if not (ctx.author.guild_permissions.administrator or ctx.author.guild_permissions.manage_guild):
+    if not (ctx.author.guild.permissions.administrator or ctx.author.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(ctx.guild.roles, name=mod_role)
             if not (role and role in ctx.author.roles):
@@ -528,7 +529,7 @@ async def slash_mute(interaction: discord.Interaction, member: discord.Member, m
     cfg = get_guild_config(interaction.guild.id)
     mod_role = cfg.get("mod_role")
     user = interaction.user
-    if not (user.guild_permissions.administrator or user.guild_permissions.manage_guild):
+    if not (user.guild.permissions.administrator or user.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(interaction.guild.roles, name=mod_role)
             if not (role and role in user.roles):
@@ -567,7 +568,7 @@ async def slash_mute(interaction: discord.Interaction, member: discord.Member, m
 async def unmute(ctx, member: discord.Member):
     cfg = get_guild_config(ctx.guild.id)
     mod_role = cfg.get("mod_role")
-    if not (ctx.author.guild_permissions.administrator or ctx.author.guild_permissions.manage_guild):
+    if not (ctx.author.guild.permissions.administrator or ctx.author.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(ctx.guild.roles, name=mod_role)
             if not (role and role in ctx.author.roles):
@@ -595,7 +596,7 @@ async def slash_unmute(interaction: discord.Interaction, member: discord.Member)
     cfg = get_guild_config(interaction.guild.id)
     mod_role = cfg.get("mod_role")
     user = interaction.user
-    if not (user.guild_permissions.administrator or user.guild_permissions.manage_guild):
+    if not (user.guild.permissions.administrator or user.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(interaction.guild.roles, name=mod_role)
             if not (role and role in user.roles):
@@ -685,7 +686,32 @@ async def on_ready():
         log("Synced application (slash) commands with Discord")
     except Exception as e:
         log(f"Failed to sync application commands: {e}")
-    # website monitor disabled (feature removed)
+    # Rotate statuses every 5 minutes
+    statuses = [
+        discord.Activity(type=discord.ActivityType.watching, name="you make mistakes"),
+        discord.Streaming(name="copyrighted music at full volume", url="https://twitch.tv/placeholder"),
+        discord.Activity(type=discord.ActivityType.listening, name="the void"),
+        discord.Game(name="with your feelings"),
+        discord.Activity(type=discord.ActivityType.watching, name="paint dry"),
+        discord.Streaming(name="nothing, the camera is off", url="https://twitch.tv/placeholder"),
+        discord.Activity(type=discord.ActivityType.listening, name="you type and delete that message"),
+        discord.Game(name="pretending to work"),
+        discord.Streaming(name="my existential crisis", url="https://twitch.tv/placeholder"),
+        discord.Activity(type=discord.ActivityType.competing, name="a competition I will not win"),
+        discord.Activity(type=discord.ActivityType.watching, name="the server slowly die"),
+        discord.Activity(type=discord.ActivityType.listening, name="absolutely nothing, it's quiet"),
+        discord.Game(name="hide and seek with my will to live"),
+        discord.Activity(type=discord.ActivityType.competing, name="saying nothing helpful"),
+        discord.Streaming(name="consciousness into the void", url="https://twitch.tv/placeholder"),
+        discord.Activity(type=discord.ActivityType.watching, name="you scroll past important announcements"),
+        discord.Game(name="minecraft at 3am"),
+        discord.Streaming(name="my tears into the ocean", url="https://twitch.tv/placeholder"),
+        discord.Activity(type=discord.ActivityType.listening, name="the same song on loop for 6 hours"),
+    ]
+    while True:
+        for status in itertools.cycle(statuses):
+            await bot.change_presence(activity=status)
+            await asyncio.sleep(10800)  # rotate every 3 hours
 
 
 # configuration helpers
@@ -796,7 +822,7 @@ config_group = app_commands.Group(name="config", description="View or change gui
 
 @config_group.command(name="show")
 async def slash_config_show(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.manage_guild:
+    if not interaction.user.guild.permissions.manage_guild:
         await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
         return
     cfg = get_guild_config(interaction.guild.id)
@@ -805,7 +831,7 @@ async def slash_config_show(interaction: discord.Interaction):
 @config_group.command(name="prefix")
 @app_commands.describe(new_prefix="New command prefix")
 async def slash_config_prefix(interaction: discord.Interaction, new_prefix: str):
-    if not interaction.user.guild_permissions.manage_guild:
+    if not interaction.user.guild.permissions.manage_guild:
         await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
         return
     cfg = get_guild_config(interaction.guild.id)
@@ -816,7 +842,7 @@ async def slash_config_prefix(interaction: discord.Interaction, new_prefix: str)
 @config_group.command(name="timezone")
 @app_commands.describe(timezone="Time zone identifier, e.g. UTC or America/New_York")
 async def slash_config_timezone(interaction: discord.Interaction, timezone: str):
-    if not interaction.user.guild_permissions.manage_guild:
+    if not interaction.user.guild.permissions.manage_guild:
         await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
         return
     cfg = get_guild_config(interaction.guild.id)
@@ -827,7 +853,7 @@ async def slash_config_timezone(interaction: discord.Interaction, timezone: str)
 @config_group.command(name="remindchan")
 @app_commands.describe(channel_name="Channel name to use for reminders by default")
 async def slash_config_remindchan(interaction: discord.Interaction, channel_name: str):
-    if not interaction.user.guild_permissions.manage_guild:
+    if not interaction.user.guild.permissions.manage_guild:
         await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
         return
     cfg = get_guild_config(interaction.guild.id)
@@ -840,7 +866,7 @@ async def slash_config_remindchan(interaction: discord.Interaction, channel_name
 @config_group.command(name="alias_add")
 @app_commands.describe(alias="alias text", expansion="command to run")
 async def slash_config_alias_add(interaction: discord.Interaction, alias: str, expansion: str):
-    if not interaction.user.guild_permissions.manage_guild:
+    if not interaction.user.guild.permissions.manage_guild:
         await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
         return
     cfg = get_guild_config(interaction.guild.id)
@@ -852,7 +878,7 @@ async def slash_config_alias_add(interaction: discord.Interaction, alias: str, e
 @config_group.command(name="alias_remove")
 @app_commands.describe(alias="alias to remove")
 async def slash_config_alias_remove(interaction: discord.Interaction, alias: str):
-    if not interaction.user.guild_permissions.manage_guild:
+    if not interaction.user.guild.permissions.manage_guild:
         await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
         return
     cfg = get_guild_config(interaction.guild.id)
@@ -866,7 +892,7 @@ async def slash_config_alias_remove(interaction: discord.Interaction, alias: str
 
 @config_group.command(name="alias_list")
 async def slash_config_alias_list(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.manage_guild:
+    if not interaction.user.guild.permissions.manage_guild:
         await interaction.response.send_message("You must have Manage Server permission.", ephemeral=True)
         return
     cfg = get_guild_config(interaction.guild.id)
@@ -896,7 +922,7 @@ async def synccommands(ctx):
 
 @bot.tree.command(name="synccommands")
 async def slash_synccommands(interaction: discord.Interaction):
-    if not getattr(interaction.user, 'guild_permissions', None) or not interaction.user.guild_permissions.administrator:
+    if not getattr(interaction.user, 'guild_permissions', None) or not interaction.user.guild.permissions.administrator:
         await interaction.response.send_message("You must be a server administrator to use this.", ephemeral=True)
         return
     try:
