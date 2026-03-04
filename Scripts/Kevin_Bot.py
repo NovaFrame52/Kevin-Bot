@@ -358,7 +358,7 @@ async def slash_remind(interaction: discord.Interaction, minutes: float, message
 async def purge(ctx, limit: int = 10):
     cfg = get_guild_config(ctx.guild.id)
     mod_role = cfg.get("mod_role")
-    if not (ctx.author.guild_permissions.administrator or ctx.author.guild.permissions.manage_guild):
+    if not (ctx.author.guild.permissions.administrator or ctx.author.guild.permissions.manage_guild):
         if mod_role:
             role = discord.utils.get(ctx.guild.roles, name=mod_role)
             if not (role and role in ctx.author.roles):
@@ -688,22 +688,22 @@ async def on_ready():
         log(f"Failed to sync application commands: {e}")
     # Rotate statuses every 5 minutes
     statuses = [
-        discord.Activity(type=discord.ActivityType.watching, name="you make mistakes"),
+        discord.Activity(name="Watching you make mistakes"),
         discord.Streaming(name="copyrighted music at full volume", url="https://twitch.tv/placeholder"),
         discord.Activity(type=discord.ActivityType.listening, name="the void"),
         discord.Game(name="with your feelings"),
-        discord.Activity(type=discord.ActivityType.watching, name="paint dry"),
+        discord.Activity(name="paint dry"),
         discord.Streaming(name="nothing, the camera is off", url="https://twitch.tv/placeholder"),
         discord.Activity(type=discord.ActivityType.listening, name="you type and delete that message"),
         discord.Game(name="pretending to work"),
         discord.Streaming(name="my existential crisis", url="https://twitch.tv/placeholder"),
         discord.Activity(type=discord.ActivityType.competing, name="a competition I will not win"),
-        discord.Activity(type=discord.ActivityType.watching, name="the server slowly die"),
+        discord.Activity(name="Watching the server slowly die"),
         discord.Activity(type=discord.ActivityType.listening, name="absolutely nothing, it's quiet"),
         discord.Game(name="hide and seek with my will to live"),
         discord.Activity(type=discord.ActivityType.competing, name="saying nothing helpful"),
         discord.Streaming(name="consciousness into the void", url="https://twitch.tv/placeholder"),
-        discord.Activity(type=discord.ActivityType.watching, name="you scroll past important announcements"),
+        discord.Activity(name="Watching you scroll past important announcements"),
         discord.Game(name="minecraft at 3am"),
         discord.Streaming(name="my tears into the ocean", url="https://twitch.tv/placeholder"),
         discord.Activity(type=discord.ActivityType.listening, name="the same song on loop for 6 hours"),
